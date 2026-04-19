@@ -1,0 +1,70 @@
+{
+  "aws": {
+    "alert_email": "saharshdudhyal@gmail.com",
+    "api_gateway_url": "",
+    "region": "ap-south-1",
+    "s3_bucket": "sneakpeek-snapshots"
+  },
+  "camera": {
+    "face_check_every_n_process": 10,
+    "phone_url": "http://10.15.226.243/stream",
+    "pose_check_every_n_process": 10,
+    "process_every_n_frames": 15,
+    "resize_width": 416,
+    "source": "phone"
+  },
+  "claude_api_key": "",
+  "cooldown_seconds": {
+    "aggressive_gesture": 120,
+    "crowd_at_night": 300,
+    "motion_at_night": 120,
+    "physical_contact": 180,
+    "smoke_or_gas": 60,
+    "unknown_person": 300
+  },
+  "night_multiplier": 1.8,
+  "serial": {
+    "baud_rate": 115200,
+    "port": "COM6",
+    "timeout": 5
+  },
+  "threat_profile": {
+    "aggressive_gesture": {
+      "description": "Aggressive posture detected",
+      "enabled": true
+    },
+    "crowd_at_night": {
+      "description": "3+ people present after dark",
+      "enabled": true
+    },
+    "motion_at_night": {
+      "description": "Any motion detected at night",
+      "enabled": false
+    },
+    "physical_contact": {
+      "description": "Two people in close contact",
+      "enabled": true
+    },
+    "smoke_or_gas": {
+      "description": "MQ-2 smoke threshold crossed",
+      "enabled": true
+    }
+  },
+  "thresholds": {
+    "aggression_score_min": 0.6,
+    "contact_overlap_min": 0.15,
+    "crowd_count_min": 3,
+    "face_similarity_min": 0.55,
+    "motion_frames_min": 3,
+    "night_ldr_max": 400,
+    "smoke_ppm_threshold": 300,
+    "threat_score_min": 0.5,
+    "yolo_confidence": 0.45
+  },
+  "weights": {
+    "aggression": 0.4,
+    "crowd_factor": 0.2,
+    "physical_contact": 0.25,
+    "unknown_person": 0.35
+  }
+}

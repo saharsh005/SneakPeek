@@ -1,0 +1,64 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pym
+
+# Virtual environments
+.venv/
+venv/
+venv310/
+env/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Logs and runtime files
+*.log
+*.pid
+*.sock
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Local data, models, and large binary artifacts
+*.pt
+*.pth
+*.onnx
+*.h5
+*.ckpt
+
+# Image assets - do not push image files
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tif
+*.tiff
+*.webp
+
+# Ignore image directories used for datasets or snapshots
+/data/known_faces/
+/data/snapshots/
+
+# Ignore local notebook checkpoints
+.ipynb_checkpoints/

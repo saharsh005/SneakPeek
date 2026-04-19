@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SneakPeek</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div class="scanline"></div>
+
+<header>
+  <div class="hdr-left">
+    <div class="logo-ring"></div>
+    <div>
+      <div class="logo-txt">SNEAKPEEK</div>
+      <div class="logo-sub">SMART CCTV MONITOR</div>
+    </div>
+  </div>
+  <div class="hdr-mid">
+    <div class="dot-row">
+      <span class="dot-item"><span class="pd" id="d-motion"></span>MOTION</span>
+      <span class="dot-item"><span class="pd" id="d-smoke"></span>SMOKE</span>
+      <span class="dot-item"><span class="pd" id="d-night"></span>NIGHT</span>
+      <span class="dot-item"><span class="pd" id="d-sys"></span><span id="sys-lbl">OFFLINE</span></span>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <span class="fps" id="fps-el">— fps</span>
+    <span class="clk" id="clk"></span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="monitor">◈ MONITOR</button>
+  <button class="tab" data-tab="alerts">⚠ ALERTS<span class="abadge" id="abadge" style="display:none">0</span></button>
+  <button class="tab" data-tab="enroll">◉ ENROLLMENT</button>
+  <button class="tab" data-tab="threats">◎ THREATS</button>
+  <button class="tab" data-tab="config">⊞ CONFIG</button>
+</nav>
+
+<!-- ══ MONITOR — no scroll, fits viewport ══ -->
+<div class="page active" id="tab-monitor">
+  <div class="mon-layout">
+
+    <!-- Camera feed — takes remaining height -->
+    <div class="cam-col">
+      <div class="panel cam-panel">
+        <div class="pan-hdr">
+          <span class="pan-lbl">LIVE FEED</span>
+          <span class="cam-badge" id="cam-badge">● OFFLINE</span>
+        </div>
+        <div class="cam-wrap">
+          <img id="cam-img" src="/video_feed" alt="Live feed">
+        </div>
+        <div class="cam-key">
+          <span class="ck green">■ known</span>
+          <span class="ck red">■ unknown</span>
+          <span class="ck dim">Score + sensor overlay on frame</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel — stacked sections -->
+    <div class="info-col">
+
+      <!-- Score -->
+      <div class="panel score-panel">
+        <div class="pan-lbl">THREAT SCORE</div>
+        <div class="score-row">
+          <canvas id="gc" width="160" height="96"></canvas>
+          <div class="score-right">
+            <div class="score-num" id="snum">0.00</div>
+            <div class="score-lv"  id="slv">CLEAR</div>
+            <div class="score-bar-bg"><div class="score-bar" id="sbar" style="width:0%"></div></div>
+            <div class="score-segs">
+              <span class="seg s">SAFE</span>
+              <span class="seg w">WARN</span>
+              <span class="seg a">ALRT</span>
+              <span class="seg c">CRIT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sensors -->
+      <div class="panel sensor-panel">
+        <div class="pan-lbl">SENSORS</div>
+        <div class="srow"><span class="sn">MOTION</span><div class="sbg"><div class="sb g" id="sb-mot" style="width:0%"></div></div><span class="sv" id="sv-mot">OFF</span></div>
+        <div class="srow"><span class="sn">SMOKE</span> <div class="sbg"><div class="sb r" id="sb-smk" style="width:0%"></div></div><span class="sv" id="sv-smk">0</span></div>
+        <div class="srow"><span class="sn">LIGHT</span> <div class="sbg"><div class="sb a" id="sb-ldr" style="width:100%"></div></div><span class="sv" id="sv-ldr">4095</span></div>
+        <div class="srow"><span class="sn">DUR</span>   <div class="sbg"><div class="sb g" id="sb-dur" style="width:0%"></div></div><span class="sv" id="sv-dur">0s</span></div>
+        <div class="ctx-pills">
+          <span class="cp" id="cp-day">◐ DAY</span>
+          <span class="cp" id="cp-night">◑ NIGHT</span>
+          <span class="cp" id="cp-smk">⚠ SMOKE</span>
+          <span class="cp" id="cp-mot">● MOTION</span>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div class="panel pipe-panel">
+        <div class="pan-lbl">AI PIPELINE</div>
+        <div class="pipe-row">
+          <div class="ps" id="ps-gate"><span class="pi">◈</span><span class="pl">GATE</span></div>
+          <span class="pa">›</span>
+          <div class="ps" id="ps-yolo"><span class="pi">◉</span><span class="pl">YOLO</span></div>
+          <span class="pa">›</span>
+          <div class="ps" id="ps-face"><span class="pi">◎</span><span class="pl">FACE</span></div>
+          <span class="pa">›</span>
+          <div class="ps" id="ps-pose"><span class="pi">⊞</span><span class="pl">POSE</span></div>
+          <span class="pa">›</span>
+          <div class="ps" id="ps-score"><span class="pi">◆</span><span class="pl">SCORE</span></div>
+        </div>
+        <div class="pipe-meta">
+          <div class="pm"><div class="pml">PEOPLE</div><div class="pmv" id="pm-ppl">—</div></div>
+          <div class="pm"><div class="pml">UNKNOWN</div><div class="pmv r" id="pm-unk">—</div></div>
+          <div class="pm"><div class="pml">STAGE</div><div class="pmv" id="pm-stg">IDLE</div></div>
+          <div class="pm"><div class="pml">THREATS</div><div class="pmv r" id="pm-thr">—</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ ALERTS — timeline style ══ -->
+<div class="page" id="tab-alerts">
+  <div class="alerts-page">
+    <div class="alerts-top">
+      <div class="al-title">ALERT LOG</div>
+      <div class="al-controls">
+        <span class="al-total" id="al-total">0 alerts</span>
+        <button class="btn-ghost" onclick="clearAlerts()">CLEAR ALL</button>
+      </div>
+    </div>
+    <div class="timeline" id="timeline">
+      <div class="tl-empty">No alerts recorded yet</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ENROLLMENT ══ -->
+<div class="page" id="tab-enroll">
+  <div class="two-col">
+    <div class="panel">
+      <div class="pan-lbl">ADD KNOWN PERSON</div>
+      <div class="fg"><label class="fl">NAME</label><input type="text" id="en-name" class="fi" placeholder="e.g. Alice"></div>
+      <div class="fg">
+        <label class="fl">FACE PHOTOS (2–6)</label>
+        <div class="dz" id="dz"><div class="dz-ic">◉</div><div class="dz-tx">Drop photos or click to browse</div><div class="dz-sx">JPG / PNG — clear face, good lighting</div><input type="file" id="ffiles" multiple accept="image/*" style="display:none"></div>
+        <div id="fchips"></div>
+      </div>
+      <button class="btn-primary" onclick="uploadFace()">UPLOAD PHOTOS</button>
+      <div class="msg" id="up-msg"></div>
+    </div>
+    <div class="panel">
+      <div class="pan-lbl">ENROLLED IDENTITIES</div>
+      <div id="id-list"><div class="empty">Loading...</div></div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+        <button class="btn-primary" id="enrl-btn" onclick="runEnroll()">RUN ENROLLMENT</button>
+        <div class="hint">Run after adding or removing persons.</div>
+        <div id="enrl-out" class="code-out" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ THREATS ══ -->
+<div class="page" id="tab-threats">
+  <div class="two-col">
+    <div class="panel">
+      <div class="pan-lbl">CUSTOM THREAT PROFILE</div>
+      <div class="ct-info">Write threats in plain English. When AI detects a threat above threshold, the snapshot is sent to AWS where Claude checks if it matches your descriptions. Email is sent only on a match.</div>
+      <div class="ct-add">
+        <div class="fg"><label class="fl">THREAT DESCRIPTION</label>
+          <textarea id="ct-desc" class="fi ct-ta" placeholder="e.g. alert if unknown person near the entrance at night&#10;e.g. notify if strangers are gathered together&#10;e.g. warn if someone looks aggressive or fighting"></textarea>
+        </div>
+        <div class="ct-row2">
+          <div class="fg" style="flex:1;margin:0"><label class="fl">SEVERITY</label>
+            <select id="ct-sev" class="fi">
+              <option value="low">LOW — log only</option>
+              <option value="medium" selected>MEDIUM — email</option>
+              <option value="high">HIGH — immediate</option>
+              <option value="critical">CRITICAL — urgent</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="addThreat()">ADD</button>
+        </div>
+        <div class="msg" id="ct-msg"></div>
+      </div>
+      <div class="ct-list-hdr">
+        <span class="pan-lbl" style="margin:0">ACTIVE THREATS</span>
+        <span class="ct-cnt" id="ct-cnt">0</span>
+      </div>
+      <div id="ct-list"><div class="empty">No threats defined yet</div></div>
+    </div>
+    <div class="panel">
+      <div class="pan-lbl">SCORING WEIGHTS</div>
+      <div id="wt-list">Loading...</div>
+      <div class="pan-lbl" style="margin-top:18px">NIGHT MULTIPLIER</div>
+      <div class="sl-row"><input type="range" class="slider" id="nmul" min="1.0" max="3.0" step="0.1" value="1.8"
+        oninput="document.getElementById('nmul-v').textContent=parseFloat(this.value).toFixed(1)+'x'">
+        <span class="slv" id="nmul-v">1.8x</span></div>
+      <button class="btn-primary" onclick="saveWeights()" style="margin-top:14px">SAVE WEIGHTS</button>
+      <div class="msg" id="wt-msg"></div>
+      <div class="pan-lbl" style="margin-top:20px">AWS MATCHING FLOW</div>
+      <div class="aws-steps">
+        <div class="aws-step"><span class="aws-n">01</span><span>Laptop AI detects + scores frame</span></div>
+        <div class="aws-step"><span class="aws-n">02</span><span>If score ≥ threshold → snapshot sent to AWS S3</span></div>
+        <div class="aws-step"><span class="aws-n">03</span><span>Lambda loads threats from DynamoDB, calls Claude</span></div>
+        <div class="aws-step"><span class="aws-n">04</span><span>SES sends alert email if threat matched</span></div>
+      </div>
+      <div class="aws-note">Custom threats sync to DynamoDB automatically when saved. Configure API Gateway URL in Config tab to enable.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIG ══ -->
+<div class="page" id="tab-config">
+  <div class="three-col">
+    <div class="panel">
+      <div class="pan-lbl">DETECTION THRESHOLDS</div>
+      <div id="th-fields"></div>
+    </div>
+    <div class="panel">
+      <div class="pan-lbl">COOLDOWN TIMERS (seconds)</div>
+      <div id="cd-fields"></div>
+    </div>
+    <div class="panel">
+      <div class="pan-lbl">CAMERA — PHONE IP WEBCAM</div>
+      <div class="fg"><label class="fl">PHONE URL</label>
+        <input type="text" id="cfg-url" class="fi" placeholder="http://192.168.x.x:8080/video">
+        <div class="hint">IP Webcam app on Android. Same WiFi required.</div>
+      </div>
+      <div class="fg"><label class="fl">PROCESS EVERY N FRAMES</label>
+        <input type="number" id="cfg-skip" class="fi" value="5" min="1" max="30">
+        <div class="hint">5 = process 1 in 5 frames. Lower = more responsive, more CPU.</div>
+      </div>
+      <div class="pan-lbl" style="margin-top:18px">SERIAL (ESP32)</div>
+      <div class="fg"><label class="fl">COM PORT</label><input type="text" id="cfg-port" class="fi" placeholder="COM3"></div>
+      <div class="pan-lbl" style="margin-top:18px">AWS</div>
+      <div class="fg"><label class="fl">ALERT EMAIL</label><input type="email" id="cfg-email" class="fi" placeholder="you@email.com"></div>
+      <div class="fg"><label class="fl">API GATEWAY URL</label>
+        <input type="text" id="cfg-apigw" class="fi" placeholder="https://xxx.execute-api.region.amazonaws.com/prod">
+        <div class="hint">Set this to enable real email alerts via Lambda + SES.</div>
+      </div>
+      <div class="fg"><label class="fl">S3 BUCKET</label><input type="text" id="cfg-bucket" class="fi" placeholder="sneakpeek-snapshots"></div>
+      <div class="fg"><label class="fl">CLAUDE API KEY</label><input type="password" id="cfg-claude" class="fi" placeholder="sk-ant-..."></div>
+      <button class="btn-primary" onclick="saveConfig()" style="margin-top:12px">SAVE ALL CONFIG</button>
+      <div class="msg" id="cfg-msg"></div>
+      <div class="cfg-note">Config saved to config.json. Engine reloads automatically within 1 second — no restart needed.</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

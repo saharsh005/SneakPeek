@@ -1,0 +1,13 @@
+ultralytics>=8.0.0
+insightface>=0.7.3
+mediapipe>=0.10.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+pyserial>=3.5
+onnxruntime>=1.16.0
+boto3>=1.28.0
+Pillow>=10.0.0
+scipy>=1.11.0
+flask>=3.0.0
+werkzeug>=3.0.0
+requests>=2.31.0
