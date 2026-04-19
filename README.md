@@ -117,3 +117,12 @@ Default alert threshold: 0.50
 - Wire PIR, MQ-2, LDR to ESP32 GPIO pins
 - Replace `alert/aws_sender.py` stub with real boto3 calls
 - Deploy Lambda + API Gateway + S3 + SES on AWS
+
+## Screenshots
+<img width="1363" height="604" alt="1" src="https://github.com/user-attachments/assets/b253a792-e734-4b79-8dd7-8bccfe64a0ad" />
+<img width="1360" height="592" alt="2" src="https://github.com/user-attachments/assets/59c2fdcd-354c-4112-87cc-6e20d0118f84" />
+
+## Wiring (Architecture)
+<img width="1280" height="722" alt="wiring 1" src="https://github.com/user-attachments/assets/e0fd9cc2-1379-461d-847d-bb491de3d7c2" />
+<img width="1008" height="573" alt="image" src="https://github.com/user-attachments/assets/363a47f3-0490-43d9-a025-588c3194fe16" />
+
