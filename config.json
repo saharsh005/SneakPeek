@@ -7,7 +7,7 @@
   },
   "camera": {
     "face_check_every_n_process": 10,
-    "phone_url": "http://10.15.226.243/stream",
+    "phone_url": "http://10.224.162.243/stream",
     "pose_check_every_n_process": 10,
     "process_every_n_frames": 15,
     "resize_width": 416,

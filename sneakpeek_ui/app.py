@@ -23,13 +23,30 @@ for d in [KNOWN_FACES_DIR, SNAPSHOTS_DIR, ALERTS_PATH.parent]:
 
 ALLOWED_IMG = {"jpg","jpeg","png","bmp","webp"}
 
-# _state = {
-#     "sensor":   {"motion":False,"smoke":False,"smoke_ppm":0,
-#                  "ldr":4095,"is_night":False,"motion_duration_s":0},
-#     "pipeline": {"stage":"idle","score":0.0,"last_threats":[],
-#                  "person_count":0,"unknown_count":0,"fps":0},
-#     "system":   {"running":False,"last_update":0,"source":"phone"},
-# }
+_state = {
+    "sensor": {
+        "motion": False,
+        "smoke": False,
+        "smoke_ppm": 0,
+        "ldr": 4095,
+        "is_night": False,
+        "motion_duration_s": 0
+    },
+    "pipeline": {
+        "stage": "idle",
+        "score": 0.0,
+        "last_threats": [],
+        "person_count": 0,
+        "unknown_count": 0,
+        "fps": 0
+    },
+    "system": {
+        "running": False,
+        "last_update": 0,
+        "source": "wifi"
+    },
+    "cooldown": {}
+}
 
 sensor_data = {
     "pir": 0,
@@ -281,16 +298,19 @@ from flask import request, jsonify
 
 @app.route('/api/sensor/event', methods=['POST'])
 def sensor_event():
-    global sensor_data
-
     data = request.json
-    print("Incoming sensor data:", data)  # DEBUG
+    print("Incoming sensor data:", data)
 
-    # Update values properly (IMPORTANT)
-    sensor_data["pir"] = data.get("pir", sensor_data["pir"])
-    sensor_data["sound"] = data.get("sound", sensor_data["sound"])
-    sensor_data["vibration"] = data.get("vibration", sensor_data["vibration"])
-    sensor_data["distance"] = data.get("distance", sensor_data["distance"])
+    with _state_lock:
+        _state["sensor"].update({
+            "motion": data.get("pir", 0),
+            "sound": data.get("sound", 0),
+            "vibration": data.get("vibration", 0),
+            "distance": data.get("distance", 0),
+        })
+        _state["system"]["last_update"] = time.time()
+
+    push_sse("sensor_update", _state["sensor"])
 
     return jsonify({"status": "updated"})
 
@@ -312,7 +332,7 @@ def camera_event():
 
 @app.route('/api/state')
 def get_state():
-    return jsonify(sensor_data)
+    return jsonify(_state)
 
 @app.route("/api/cooldown")
 def get_cooldown():
