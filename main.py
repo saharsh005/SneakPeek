@@ -1,167 +1,147 @@
 """
-main.py — SneakPeek entry point (FINAL VERSION — WIFI ONLY)
+main.py — SneakPeek Entry Point
+================================
+Run this from the project root:
 
-Architecture:
-  ESP32-CAM  → WiFi stream → Python (CameraEngine)
-  ESP32 DevKit → HTTP POST → Flask (/api/sensor/event)
+    python main.py                    # default port 5000
+    PORT=8080 python main.py          # custom port
 
-NO SERIAL
-NO COM PORT
-NO DEVICE COUPLING
+What it does:
+  1. Loads .env
+  2. Validates required environment variables (warns, does not crash)
+  3. Starts the Flask app with all background threads via ui/app.py
+  4. Handles SIGINT / SIGTERM for graceful shutdown
+     (stops CameraManager threads cleanly before exit)
+
+Project layout expected:
+    SneakPeek/
+    ├── main.py                ← this file
+    ├── .env
+    ├── custom_threats.json
+    ├── engine/
+    │   ├── camera.py
+    │   ├── scorer.py
+    │   └── vision.py          (optional, or use your own)
+    ├── ui/
+    │   ├── app.py
+    │   ├── static/
+    │   └── templates/
+    ├── alert/
+    │   └── aws_sender.py
+    └── snapshots/             (auto-created)
 """
 
-import json
-import time
 import logging
-import argparse
+import os
+import signal
 import sys
-import threading
-import urllib.request
 
-from engine.config_manager import cfg
-from engine.state           import SystemState
-from engine.cooldown        import CooldownManager
-from engine.camera          import CameraEngine
-from engine.detector        import PersonDetector
-from engine.recognizer      import FaceRecognizer
-from engine.pose            import PoseAnalyzer
-from engine.scorer          import ThreatScorer
-from alert.aws_sender       import AWSSender
+# ── 1. Load .env before any other import reads os.environ ─────────────────────
+from dotenv import load_dotenv
+load_dotenv()
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Logging — set up early so every module's logger inherits the format
+# ──────────────────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level  = logging.INFO,
+    format = "%(asctime)s [%(threadName)s] %(name)s — %(levelname)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),           # console
+        logging.FileHandler("sneakpeek.log", "a"),   # rolling log in project root
+    ],
+)
+logger = logging.getLogger("sneakpeek.main")
 
-# ─────────────────────────────────────────────────────────────
-# Logging
-# ─────────────────────────────────────────────────────────────
-def setup_logging(debug: bool):
-    level = logging.DEBUG if debug else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
-        datefmt="%H:%M:%S",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler("sneakpeek.log", encoding="utf-8"),
-        ]
-    )
+# ──────────────────────────────────────────────────────────────────────────────
+# 2. Validate environment (warn only — system still runs without AWS keys,
+#    it just won't send emails until you add them)
+# ──────────────────────────────────────────────────────────────────────────────
+REQUIRED_ENV = {
+    "CAM_STREAM_URL":       "ESP32-CAM MJPEG stream URL (e.g. http://192.168.1.100/stream)",
+    "AWS_ACCESS_KEY_ID":    "AWS access key for S3 + SES",
+    "AWS_SECRET_ACCESS_KEY":"AWS secret key",
+    "AWS_REGION":           "AWS region (e.g. ap-south-1)",
+    "AWS_S3_BUCKET":        "S3 bucket name for snapshots",
+    "AWS_SES_SENDER":       "Verified SES sender email",
+    "AWS_SES_RECIPIENT":    "Alert recipient email(s), comma-separated",
+}
 
+missing = [k for k in REQUIRED_ENV if not os.environ.get(k)]
+if missing:
+    logger.warning("=" * 60)
+    logger.warning("Missing environment variables (set in .env or shell):")
+    for k in missing:
+        logger.warning("  %-30s  %s", k, REQUIRED_ENV[k])
+    logger.warning("Camera stream and alerts may not work until these are set.")
+    logger.warning("=" * 60)
+else:
+    logger.info("All required environment variables loaded.")
 
-# ─────────────────────────────────────────────────────────────
-# Push updates to UI
-# ─────────────────────────────────────────────────────────────
-def notify_ui(payload: dict):
-    try:
-        body = json.dumps(payload).encode()
-        req  = urllib.request.Request(
-            "http://localhost:5000/api/pipeline/event",
-            data=body,
-            headers={"Content-Type": "application/json"}
-        )
-        urllib.request.urlopen(req, timeout=0.5)
-    except Exception:
-        pass
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. Ensure output directories exist
+# ──────────────────────────────────────────────────────────────────────────────
+for d in [
+    os.environ.get("SNAPSHOT_LOCAL_DIR", "./snapshots"),
+    "engine/known_faces",     # face-recognition whitelist
+]:
+    os.makedirs(d, exist_ok=True)
 
+# Ensure custom_threats.json exists (empty list if missing)
+threats_path = os.environ.get("CUSTOM_THREATS_PATH", "./custom_threats.json")
+if not os.path.exists(threats_path):
+    import json
+    with open(threats_path, "w") as fh:
+        json.dump([], fh)
+    logger.info("Created empty custom_threats.json at %s", threats_path)
 
-# ─────────────────────────────────────────────────────────────
-# MAIN
-# ─────────────────────────────────────────────────────────────
-def main():
-    parser = argparse.ArgumentParser(description="SneakPeek engine")
-    parser.add_argument("--config", default="config.json")
-    parser.add_argument("--debug", action="store_true")
-    args = parser.parse_args()
+# ──────────────────────────────────────────────────────────────────────────────
+# 4. Import Flask app and subsystems
+#    (done AFTER .env is loaded so env vars are available at import time)
+# ──────────────────────────────────────────────────────────────────────────────
+from sneakpeek_ui.app import app, camera, start_background_services
 
-    setup_logging(args.debug)
-    logger = logging.getLogger("main")
-
-    # Load config
-    source    = "phone"   # FORCE WIFI CAMERA MODE
-    phone_url = cfg.camera().get("phone_url", "")
-
-    logger.info("=" * 52)
-    logger.info("  SneakPeek — starting")
-    logger.info(f"  Source : WIFI CAMERA")
-    logger.info(f"  URL    : {phone_url}")
-    logger.info("=" * 52)
-
-    # ── State + cooldown ───────────────────────────────────────
-    state    = SystemState()
-    cooldown = CooldownManager()
-
-    # ── AI models ──────────────────────────────────────────────
-    logger.info("Loading AI models...")
-    detector      = PersonDetector()
-    recognizer    = FaceRecognizer(cfg.all())
-    pose_analyzer = PoseAnalyzer(cfg.all())
-    scorer        = ThreatScorer()
-    sender        = AWSSender()
-    logger.info("Models ready.")
-
-    # Reload embeddings on config change
-    cfg.on_reload(lambda _: recognizer.reload_embeddings())
-
-    # ── Camera Engine (WiFi stream only) ───────────────────────
-    camera = CameraEngine(
-        state, cooldown,
-        detector, recognizer, pose_analyzer, scorer, sender
-    )
-    camera.start()
-
-    # ── Flask UI ───────────────────────────────────────────────
-    try:
-        import os
-        import sys as _sys
-
-        ui_path = os.path.join(os.path.dirname(__file__), "sneakpeek_ui")
-        if ui_path not in _sys.path:
-            _sys.path.insert(0, ui_path)
-
-        from app import app as flask_app
-
-        flask_thread = threading.Thread(
-            target=lambda: flask_app.run(
-                host="0.0.0.0",
-                port=5000,
-                debug=False,
-                threaded=True,
-                use_reloader=False
-            ),
-            daemon=True,
-            name="flask"
-        )
-        flask_thread.start()
-
-        logger.info("UI server started on http://localhost:5000")
-
-    except Exception as e:
-        logger.warning(f"Flask UI not started: {e}")
-
-    # ── Push state to UI every 0.5s ────────────────────────────
-    def push_state():
-        while True:
-            snap = state.snapshot()
-            snap["event_type"] = "state_update"
-            notify_ui(snap)
-            time.sleep(0.5)
-
-    threading.Thread(
-        target=push_state,
-        daemon=True,
-        name="ui-push"
-    ).start()
-
-    logger.info("Engine running.")
-    logger.info("Open http://localhost:5000 in your browser.")
-    logger.info("Press Ctrl+C to stop.\n")
+# ──────────────────────────────────────────────────────────────────────────────
+# 5. Graceful shutdown handler
+# ──────────────────────────────────────────────────────────────────────────────
+def _shutdown(signum, frame):
+    sig_name = signal.Signals(signum).name
+    logger.info("Received %s — shutting down SneakPeek…", sig_name)
 
     try:
-        while True:
-            time.sleep(1)
-
-    except KeyboardInterrupt:
-        logger.info("Stopping...")
         camera.stop()
+        logger.info("Camera threads stopped.")
+    except Exception:
+        logger.exception("Error stopping camera.")
+
+    logger.info("Goodbye.")
+    sys.exit(0)
 
 
-# ─────────────────────────────────────────────────────────────
+signal.signal(signal.SIGINT,  _shutdown)
+signal.signal(signal.SIGTERM, _shutdown)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 6. Start background threads then Flask
+# ──────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    main()
+    port = int(os.environ.get("PORT", 5000))
+    host = os.environ.get("HOST", "0.0.0.0")
+
+    logger.info("Starting SneakPeek Security System")
+    logger.info("  Camera URL : %s", os.environ.get("CAM_STREAM_URL", "(not set)"))
+    logger.info("  Flask      : http://%s:%d", host, port)
+    logger.info("  Threats    : %s", threats_path)
+    logger.info("  Snapshots  : %s", os.environ.get("SNAPSHOT_LOCAL_DIR", "./snapshots"))
+
+    start_background_services()
+
+    # debug=False is mandatory — debug mode launches a second process
+    # which breaks all daemon threads and the signal handlers.
+    app.run(
+        host    = host,
+        port    = port,
+        debug   = False,
+        threaded= True,     # handle multiple requests concurrently (SSE + video_feed)
+        use_reloader = False,
+    )
