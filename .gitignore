@@ -29,6 +29,16 @@ htmlcov/
 *.log
 *.pid
 *.sock
+# Archives (should never be committed)
+*.rar
+*.zip
+*.tar
+*.gz
+*.7z
+
+.env
+.env.*
+!.env.example
 
 # Editor and IDE files
 .vscode/

@@ -1,5 +1,27 @@
 [
   {
+    "timestamp": "2026-04-28T21:07:30.646106+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T210730Z_2fbb4180.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 157.5,
+      "ldr": 1498,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
     "timestamp": "2026-04-28T20:52:00.045785+00:00",
     "score": 0.5,
     "severity": "medium",
