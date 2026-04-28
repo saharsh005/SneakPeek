@@ -1,5 +1,449 @@
 [
   {
+    "timestamp": "2026-04-28T20:52:00.045785+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T205200Z_c6609f5a.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 155.5,
+      "ldr": 1939,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T20:49:28.494646+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T204928Z_665c003d.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 154.9,
+      "ldr": 1872,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T20:08:51.612663+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T200851Z_a7c2e9f7.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 153.9,
+      "ldr": 1886,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:44:02.944650+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T194402Z_9da5e6f5.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 168.6,
+      "ldr": 1121,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:43:02.530948+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T194302Z_c71d3537.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 176.8,
+      "ldr": 900,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:42:10.511447+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T194210Z_41805b0d.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 177.6,
+      "ldr": 658,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:25:43.186151+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T192543Z_623eef63.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 170.2,
+      "ldr": 884,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:22:50.336280+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T192250Z_d69415bf.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 167.6,
+      "ldr": 1936,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:21:50.330609+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T192150Z_f84f2f89.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 163.3,
+      "ldr": 662,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:17:28.806979+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T191728Z_2b5fede1.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 162.5,
+      "ldr": 1681,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:16:27.979324+00:00",
+    "score": 0.75,
+    "severity": "high",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Motion detected",
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T191627Z_927bb9c1.jpg",
+    "sensor": {
+      "motion": true,
+      "smoke_ppm": 170.2,
+      "ldr": 1445,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.6,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:03:57.395046+00:00",
+    "score": 0.75,
+    "severity": "high",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Motion detected",
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T190357Z_5385b932.jpg",
+    "sensor": {
+      "motion": true,
+      "smoke_ppm": 177.5,
+      "ldr": 785,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 1.4,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T19:02:54.522689+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T190254Z_8070108e.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 177.9,
+      "ldr": 1704,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T18:57:52.042614+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame",
+      "2 persons detected"
+    ],
+    "snapshot": "snapshot_20260428T185752Z_73d6b5ec.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 174.9,
+      "ldr": 1018,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T18:48:29.663340+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T184829Z_7befab7d.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 183.7,
+      "ldr": 1200,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T18:41:52.151157+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T184152Z_51e65826.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 177.8,
+      "ldr": 1697,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T18:17:55.635453+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T181755Z_f3e1df4e.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 163.6,
+      "ldr": 1764,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T18:11:44.205269+00:00",
+    "score": 0.75,
+    "severity": "high",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Motion detected",
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T181144Z_0e168571.jpg",
+    "sensor": {
+      "motion": true,
+      "smoke_ppm": 157.3,
+      "ldr": 1889,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.8,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T18:10:03.443863+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T181003Z_a508e279.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 157.8,
+      "ldr": 784,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
+    "timestamp": "2026-04-28T18:09:03.442335+00:00",
+    "score": 0.5,
+    "severity": "medium",
+    "threats": [
+      "unknown person in the frame"
+    ],
+    "reasons": [
+      "Unknown person in frame"
+    ],
+    "snapshot": "snapshot_20260428T180903Z_b86c49cd.jpg",
+    "sensor": {
+      "motion": false,
+      "smoke_ppm": 161.0,
+      "ldr": 896,
+      "night": false,
+      "smoke": false,
+      "motion_duration_s": 0.0,
+      "is_night": false
+    },
+    "email_sent": false
+  },
+  {
     "id": 1776068922500,
     "timestamp": "2026-04-13T08:28:41.485410Z",
     "threats": [

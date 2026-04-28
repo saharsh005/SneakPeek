@@ -1,13 +1,13 @@
 {
   "aws": {
-    "alert_email": "saharshdudhyal@gmail.com",
+    "alert_email": "dudhyalsaharsh@gmail.com",
     "api_gateway_url": "",
     "region": "ap-south-1",
     "s3_bucket": "sneakpeek-snapshots"
   },
   "camera": {
     "face_check_every_n_process": 10,
-    "phone_url": "http://10.224.162.243/stream",
+    "phone_url": "http://10.224.162.150/stream",
     "pose_check_every_n_process": 10,
     "process_every_n_frames": 15,
     "resize_width": 416,
@@ -22,6 +22,7 @@
     "smoke_or_gas": 60,
     "unknown_person": 300
   },
+  "email_provider": "smtp",
   "night_multiplier": 1.8,
   "serial": {
     "baud_rate": 115200,
@@ -66,5 +67,13 @@
     "crowd_factor": 0.2,
     "physical_contact": 0.25,
     "unknown_person": 0.35
+  },
+  "smtp": {
+    "from": "saharshdudhyal@gmail.com",
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "user": "saharshdudhyal@gmail.com",
+    "pass": "",
+    "use_tls": true
   }
 }

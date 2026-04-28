@@ -43,13 +43,13 @@ function drawGauge(score){
 
 // ── State → UI ─────────────────────────────────────────────────
 function applyState(st){
-  const s=st.sensor||{}, p=st.pipeline||{}, sys=st.system||{};
+  const s=st.sensor||{}, p=st.pipeline||{}, sys=st.system||{}, cam=st.camera||{};
 
   // Dots
   pd('d-motion', s.motion);
   pd('d-smoke',  s.smoke, 'danger');
   pd('d-night',  s.is_night, 'amber');
-  const online = sys.running && (Date.now()/1000 - (sys.last_update||0)) < 8;
+  const online = !!cam.online || (sys.running && (Date.now()/1000 - (sys.last_update||0)) < 8);
   pd('d-sys', online);
   const sl = document.getElementById('sys-lbl');
   if(sl){ sl.textContent=online?'ONLINE':'OFFLINE'; sl.className=online?'on':''; }
@@ -134,20 +134,25 @@ function cp(id,on,danger){
 // ── SSE ────────────────────────────────────────────────────────
 let _sseT;
 function connectSSE(){
-  const es = new EventSource('/stream');
+  const es = new EventSource('/api/sse');
+  es.addEventListener('init', e => applyState(JSON.parse(e.data)));
   es.addEventListener('state_update', e => applyState(JSON.parse(e.data)));
-  es.addEventListener('new_alert', e=>{
-    const a=JSON.parse(e.data);
-    alertCount++; updateBadge();
-    toast('ALERT: '+(a.threats||[]).join(', ').toUpperCase(), true);
-    if(document.getElementById('tab-alerts').classList.contains('active'))
-      prependTimelineAlert(a);
-    updateAlertTotal();
+  es.addEventListener('sensor_update', async ()=>{
+    const st=await(await fetch('/api/state')).json();
+    applyState(st);
   });
-  es.addEventListener('config_updated', ()=> toast('Config reloading in engine...'));
-  es.addEventListener('enrollment_done', e=>{
-    toast(JSON.parse(e.data).ok ? 'Enrollment complete' : 'Enrollment failed');
-    loadFaces();
+  es.addEventListener('threat_update', async ()=>{
+    const st=await(await fetch('/api/state')).json();
+    applyState(st);
+  });
+  es.addEventListener('camera_status', async ()=>{
+    const st=await(await fetch('/api/state')).json();
+    applyState(st);
+  });
+  es.addEventListener('alert_sent', async ()=>{
+    const data=await(await fetch('/api/alerts')).json();
+    alertCount = data.length; updateBadge(); updateAlertTotal();
+    if(document.getElementById('tab-alerts').classList.contains('active')) loadAlerts();
   });
   es.onerror=()=>{ es.close(); clearTimeout(_sseT); _sseT=setTimeout(connectSSE,3000); };
 }
@@ -259,15 +264,13 @@ async function clearAlerts(){
 // ── Enrollment ─────────────────────────────────────────────────
 async function loadFaces(){
   const data=await(await fetch('/api/faces')).json();
+  const names = Array.isArray(data) ? data : (data.identities||[]).map(x=>x.name);
   const list=document.getElementById('id-list');
-  if(!data.identities.length){list.innerHTML='<div class="empty">No identities added</div>';return;}
-  list.innerHTML=data.identities.map(id=>`
+  if(!names.length){list.innerHTML='<div class="empty">No identities added</div>';return;}
+  list.innerHTML=names.map(name=>`
     <div class="id-row">
-      <div><div class="id-nm">${id.name}</div><div class="id-ct">${id.photo_count} photo(s)</div></div>
-      <div style="display:flex;align-items:center;gap:8px">
-        ${data.enrolled.includes(id.name)?'<span class="id-enr">✓ ENROLLED</span>':''}
-        <button class="id-del" onclick="delFace('${id.name}')">DEL</button>
-      </div>
+      <div><div class="id-nm">${name}</div><div class="id-ct">enrolled</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="id-enr">✓ ENROLLED</span></div>
     </div>`).join('');
 }
 const dz=document.getElementById('dz'), fi=document.getElementById('ffiles');
@@ -416,7 +419,8 @@ async function saveWeights(){
     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)
   })).json();
   const msg=document.getElementById('wt-msg');
-  showMsg(msg, data.ok?'Weights saved — active in engine within 1s':'Error', data.ok?'ok':'err');
+  const ok = !!(data.ok || data.status === 'saved');
+  showMsg(msg, ok?'Weights saved — active in engine within 1s':'Error', ok?'ok':'err');
   setTimeout(()=>showMsg(msg,'',''),3000);
 }
 
@@ -443,7 +447,14 @@ async function loadConfig(){
   setVal('cfg-url',   cam.phone_url||'');
   setVal('cfg-skip',  cam.process_every_n_frames||5);
   setVal('cfg-port',  cfg.serial?.port||'');
+  setVal('cfg-email-provider', cfg.email_provider||'smtp');
   setVal('cfg-email', cfg.aws?.alert_email||'');
+  setVal('cfg-smtp-from', cfg.smtp?.from || getVal('cfg-email'));
+  setVal('cfg-smtp-host', cfg.smtp?.host || 'smtp.gmail.com');
+  setVal('cfg-smtp-port', cfg.smtp?.port || 587);
+  setVal('cfg-smtp-user', cfg.smtp?.user || getVal('cfg-email'));
+  setVal('cfg-smtp-pass', cfg.smtp?.pass || '');
+  setVal('cfg-smtp-tls', String(cfg.smtp?.use_tls ?? true));
   setVal('cfg-apigw', cfg.aws?.api_gateway_url||'');
   setVal('cfg-bucket',cfg.aws?.s3_bucket||'');
   if(cfg.claude_api_key){
@@ -464,18 +475,27 @@ async function saveConfig(){
   cfg.camera.source='phone';
   cfg.serial=cfg.serial||{};
   cfg.serial.port=getVal('cfg-port');
+  cfg.email_provider=getVal('cfg-email-provider') || 'smtp';
   cfg.aws=cfg.aws||{};
   cfg.aws.alert_email=getVal('cfg-email');
   cfg.aws.api_gateway_url=getVal('cfg-apigw');
   cfg.aws.s3_bucket=getVal('cfg-bucket');
+  cfg.smtp=cfg.smtp||{};
+  cfg.smtp.from=getVal('cfg-smtp-from');
+  cfg.smtp.host=getVal('cfg-smtp-host');
+  cfg.smtp.port=parseInt(getVal('cfg-smtp-port')) || 587;
+  cfg.smtp.user=getVal('cfg-smtp-user');
+  cfg.smtp.pass=getVal('cfg-smtp-pass');
+  cfg.smtp.use_tls=getVal('cfg-smtp-tls') === 'true';
   const ck=getVal('cfg-claude');
   if(ck) cfg.claude_api_key=ck;
   const data=await(await fetch('/api/config',{
     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)
   })).json();
-  showMsg(msg, data.ok?'Saved — engine reloads within 1s':'Error saving', data.ok?'ok':'err');
+  const ok = !!(data.ok || data.status === 'saved');
+  showMsg(msg, ok?'Saved — engine reloads within 1s':'Error saving', ok?'ok':'err');
   setTimeout(()=>showMsg(msg,'',''),4000);
-  toast(data.ok?'Config saved':'Save failed',!data.ok);
+  toast(ok?'Config saved':'Save failed',!ok);
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -491,4 +511,10 @@ function showMsg(el,msg,cls){if(el){el.textContent=msg;el.className='msg '+(cls|
   const alerts=await(await fetch('/api/alerts')).json();
   alertCount=alerts.length; updateBadge(); updateAlertTotal();
   connectSSE();
+  setInterval(async ()=>{
+    try{
+      const fresh=await(await fetch('/api/state')).json();
+      applyState(fresh);
+    }catch(_e){}
+  }, 1200);
 })();

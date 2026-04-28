@@ -206,14 +206,14 @@
         <span class="slv" id="nmul-v">1.8x</span></div>
       <button class="btn-primary" onclick="saveWeights()" style="margin-top:14px">SAVE WEIGHTS</button>
       <div class="msg" id="wt-msg"></div>
-      <div class="pan-lbl" style="margin-top:20px">AWS MATCHING FLOW</div>
+      <div class="pan-lbl" style="margin-top:20px">EMAIL FLOW</div>
       <div class="aws-steps">
         <div class="aws-step"><span class="aws-n">01</span><span>Laptop AI detects + scores frame</span></div>
-        <div class="aws-step"><span class="aws-n">02</span><span>If score ≥ threshold → snapshot sent to AWS S3</span></div>
-        <div class="aws-step"><span class="aws-n">03</span><span>Lambda loads threats from DynamoDB, calls Claude</span></div>
-        <div class="aws-step"><span class="aws-n">04</span><span>SES sends alert email if threat matched</span></div>
+        <div class="aws-step"><span class="aws-n">02</span><span>If score ≥ threshold → snapshot is attached or linked</span></div>
+        <div class="aws-step"><span class="aws-n">03</span><span>Custom threat rules are matched locally</span></div>
+        <div class="aws-step"><span class="aws-n">04</span><span>SMTP or SES sends alert email if threat matched</span></div>
       </div>
-      <div class="aws-note">Custom threats sync to DynamoDB automatically when saved. Configure API Gateway URL in Config tab to enable.</div>
+      <div class="aws-note">Custom threats save locally and reload instantly. Switch email provider in Config tab.</div>
     </div>
   </div>
 </div>
@@ -241,11 +241,28 @@
       </div>
       <div class="pan-lbl" style="margin-top:18px">SERIAL (ESP32)</div>
       <div class="fg"><label class="fl">COM PORT</label><input type="text" id="cfg-port" class="fi" placeholder="COM3"></div>
-      <div class="pan-lbl" style="margin-top:18px">AWS</div>
+      <div class="pan-lbl" style="margin-top:18px">EMAIL</div>
+      <div class="fg"><label class="fl">PROVIDER</label>
+        <select id="cfg-email-provider" class="fi">
+          <option value="smtp" selected>SMTP</option>
+          <option value="aws">AWS SES</option>
+        </select>
+      </div>
       <div class="fg"><label class="fl">ALERT EMAIL</label><input type="email" id="cfg-email" class="fi" placeholder="you@email.com"></div>
+      <div class="fg"><label class="fl">SMTP FROM / SENDER</label><input type="email" id="cfg-smtp-from" class="fi" placeholder="your_email@gmail.com"></div>
+      <div class="fg"><label class="fl">SMTP HOST</label><input type="text" id="cfg-smtp-host" class="fi" placeholder="smtp.gmail.com"></div>
+      <div class="fg"><label class="fl">SMTP PORT</label><input type="number" id="cfg-smtp-port" class="fi" placeholder="587"></div>
+      <div class="fg"><label class="fl">SMTP USER</label><input type="text" id="cfg-smtp-user" class="fi" placeholder="your_email@gmail.com"></div>
+      <div class="fg"><label class="fl">SMTP PASS</label><input type="password" id="cfg-smtp-pass" class="fi" placeholder="app password"></div>
+      <div class="fg"><label class="fl">USE TLS</label>
+        <select id="cfg-smtp-tls" class="fi">
+          <option value="true" selected>TRUE</option>
+          <option value="false">FALSE</option>
+        </select>
+      </div>
       <div class="fg"><label class="fl">API GATEWAY URL</label>
         <input type="text" id="cfg-apigw" class="fi" placeholder="https://xxx.execute-api.region.amazonaws.com/prod">
-        <div class="hint">Set this to enable real email alerts via Lambda + SES.</div>
+        <div class="hint">Only needed if you switch back to AWS SES / Lambda flow.</div>
       </div>
       <div class="fg"><label class="fl">S3 BUCKET</label><input type="text" id="cfg-bucket" class="fi" placeholder="sneakpeek-snapshots"></div>
       <div class="fg"><label class="fl">CLAUDE API KEY</label><input type="password" id="cfg-claude" class="fi" placeholder="sk-ant-..."></div>

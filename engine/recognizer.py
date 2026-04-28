@@ -23,6 +23,7 @@ import cv2
 import pickle
 import numpy as np
 import logging
+import time
 from pathlib import Path
 from insightface.app import FaceAnalysis
 
@@ -33,7 +34,10 @@ EMBEDDINGS_PATH = Path("data/embeddings.pkl")
 
 class FaceRecognizer:
     def __init__(self, config: dict):
-        self._threshold = config["thresholds"]["face_similarity_min"]
+        self._threshold = float(config["thresholds"]["face_similarity_min"])
+        self._single_identity_relaxed = max(0.35, self._threshold - 0.12)
+        self._last_reload_check = 0.0
+        self._emb_mtime = 0.0
 
         logger.info("[recognizer] Loading InsightFace — first run downloads ONNX models")
         self._app = FaceAnalysis(
@@ -44,6 +48,10 @@ class FaceRecognizer:
         logger.info("[recognizer] InsightFace ready")
 
         self._known: dict[str, np.ndarray] = self._load_embeddings()
+        logger.info(
+            "[recognizer] face_similarity_min=%.3f, single-id relaxed=%.3f",
+            self._threshold, self._single_identity_relaxed
+        )
 
     # ------------------------------------------------------------------
     # Public API
@@ -62,11 +70,12 @@ class FaceRecognizer:
                 "bbox"      : [x1,y1,x2,y2],
             }
         """
+        self._maybe_reload_embeddings()
         faces = self._app.get(frame)
         results = []
 
         for face in faces:
-            emb  = face.embedding
+            emb  = self._normalize(face.embedding)
             bbox = list(map(int, face.bbox.tolist()))
             name, sim = self._match(emb)
             results.append({
@@ -85,6 +94,10 @@ class FaceRecognizer:
     def reload_embeddings(self) -> None:
         """Hot-reload embeddings without restarting (call after new enrollment)."""
         self._known = self._load_embeddings()
+        try:
+            self._emb_mtime = EMBEDDINGS_PATH.stat().st_mtime
+        except Exception:
+            pass
         logger.info(f"[recognizer] Reloaded {len(self._known)} known identities")
 
     # ------------------------------------------------------------------
@@ -105,6 +118,9 @@ class FaceRecognizer:
                 best_name = name
 
         if best_sim < self._threshold:
+            if len(self._known) == 1 and best_sim >= self._single_identity_relaxed:
+                logger.debug("[recognizer] relaxed single-id accept: %s sim=%.3f", best_name, best_sim)
+                return best_name, best_sim
             return "unknown", best_sim
 
         return best_name, best_sim
@@ -117,6 +133,27 @@ class FaceRecognizer:
         return float(np.dot(a, b) / denom)
 
     @staticmethod
+    def _normalize(v: np.ndarray) -> np.ndarray:
+        n = np.linalg.norm(v)
+        if n == 0:
+            return v
+        return v / n
+
+    def _maybe_reload_embeddings(self) -> None:
+        now = time.time()
+        if now - self._last_reload_check < 2.0:
+            return
+        self._last_reload_check = now
+        if not EMBEDDINGS_PATH.exists():
+            return
+        try:
+            mtime = EMBEDDINGS_PATH.stat().st_mtime
+        except Exception:
+            return
+        if mtime > self._emb_mtime:
+            self.reload_embeddings()
+
+    @staticmethod
     def _load_embeddings() -> dict[str, np.ndarray]:
         if not EMBEDDINGS_PATH.exists():
             logger.warning(
@@ -126,5 +163,10 @@ class FaceRecognizer:
             return {}
         with open(EMBEDDINGS_PATH, "rb") as f:
             data = pickle.load(f)
-        logger.info(f"[recognizer] Loaded embeddings for: {list(data.keys())}")
-        return data
+        normalized: dict[str, np.ndarray] = {}
+        for name, emb in data.items():
+            emb_np = np.asarray(emb, dtype=np.float32)
+            n = np.linalg.norm(emb_np)
+            normalized[name] = emb_np if n == 0 else emb_np / n
+        logger.info(f"[recognizer] Loaded embeddings for: {list(normalized.keys())}")
+        return normalized

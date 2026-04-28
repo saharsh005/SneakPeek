@@ -58,12 +58,12 @@ void startCamera() {
 
   // 🔥 STABLE SETTINGS
   if (psramFound()) {
-    config.frame_size = FRAMESIZE_QVGA;   // 320x240
-    config.jpeg_quality = 15;             // stable
-    config.fb_count = 1;                  // VERY IMPORTANT
+    config.frame_size = FRAMESIZE_QVGA;   // 320x240 (stable)
+    config.jpeg_quality = 12;             // balanced quality/load
+    config.fb_count = 1;                  // avoid FB-OVF on long runs
   } else {
     config.frame_size = FRAMESIZE_QVGA;
-    config.jpeg_quality = 18;
+    config.jpeg_quality = 14;
     config.fb_count = 1;
   }
 
@@ -76,10 +76,17 @@ void startCamera() {
   // 🔥 Sensor tuning
   sensor_t * s = esp_camera_sensor_get();
   s->set_framesize(s, FRAMESIZE_QVGA);
-  s->set_quality(s, 15);
+  s->set_quality(s, psramFound() ? 12 : 14);
   s->set_brightness(s, 1);
   s->set_contrast(s, 1);
   s->set_saturation(s, 0);
+  s->set_sharpness(s, 1);
+  s->set_dcw(s, 1);                 // enable downsize path for stability
+  s->set_gain_ctrl(s, 1);
+  s->set_gainceiling(s, GAINCEILING_8X);
+  s->set_exposure_ctrl(s, 1);
+  s->set_ae_level(s, 1);
+  s->set_aec_value(s, 400);
 
   Serial.println("✅ Camera initialized");
 }
@@ -115,7 +122,7 @@ void handleStream() {
 
     esp_camera_fb_return(fb);
 
-    delay(100);   // ✅ keep this
+    delay(100);   // ~10fps max, easier on buffers
     yield();      // ✅ keep this
 
     // 🔥 CRITICAL FIX

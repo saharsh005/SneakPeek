@@ -1,69 +1,9 @@
 [
   {
-    "id":       "threat_001",
-    "name":     "Night Intruder",
-    "enabled":  true,
-    "severity": "critical",
-    "conditions": {
-      "motion":         true,
-      "unknown_person": true,
-      "night":          true
-    },
-    "message": "Unrecognised person detected moving at night."
-  },
-  {
-    "id":       "threat_002",
-    "name":     "Smoke + Motion",
-    "enabled":  true,
-    "severity": "critical",
-    "conditions": {
-      "smoke":  true,
-      "motion": true
-    },
-    "message": "Simultaneous smoke and motion detected — possible fire or intrusion."
-  },
-  {
-    "id":       "threat_003",
-    "name":     "Daytime Intruder",
-    "enabled":  true,
-    "severity": "high",
-    "conditions": {
-      "motion":         true,
-      "unknown_person": true,
-      "night":          false
-    },
-    "message": "Unknown person detected during the day."
-  },
-  {
-    "id":       "threat_004",
-    "name":     "Smoke Only",
-    "enabled":  true,
-    "severity": "high",
-    "conditions": {
-      "smoke": true,
-      "min_smoke_ppm": 300.0
-    },
-    "message": "Smoke/gas levels exceeded safety threshold."
-  },
-  {
-    "id":       "threat_005",
-    "name":     "Crouching Suspect",
-    "enabled":  true,
-    "severity": "high",
-    "conditions": {
-      "motion": true,
-      "poses":  ["crouching", "crawling"]
-    },
-    "message": "Suspicious crouching/crawling pose detected with motion."
-  },
-  {
-    "id":       "threat_006",
-    "name":     "Multiple Persons",
-    "enabled":  false,
+    "id": "ct_1777399304867",
+    "description": "unknown person in the frame",
     "severity": "medium",
-    "conditions": {
-      "min_persons": 2
-    },
-    "message": "Multiple people detected in the monitored area."
+    "enabled": true,
+    "created_at": "2026-04-28T18:01:44.867644Z"
   }
 ]

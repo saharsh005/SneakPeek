@@ -57,6 +57,19 @@ CUSTOM_THREATS_PATH = os.environ.get(
 
 # Severity ordering for comparison
 _SEVERITY_RANK = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+_DESC_KEYWORDS = {
+    "unknown": "unknown_person",
+    "stranger": "unknown_person",
+    "intruder": "unknown_person",
+    "smoke": "smoke",
+    "gas": "smoke",
+    "night": "night",
+    "dark": "night",
+    "motion": "motion",
+    "fight": "aggressive",
+    "aggress": "aggressive",
+    "contact": "contact",
+}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -185,6 +198,29 @@ def _eval_conditions(conditions: dict[str, Any], event: dict[str, Any]) -> bool:
     return True
 
 
+def _eval_description(description: str, event: dict[str, Any]) -> bool:
+    text = (description or "").lower()
+    if not text:
+        return False
+    checks = 0
+    hits = 0
+    for kw, signal in _DESC_KEYWORDS.items():
+        if kw not in text:
+            continue
+        checks += 1
+        if signal == "aggressive":
+            if "aggressive" in event.get("poses", []):
+                hits += 1
+        elif signal == "contact":
+            if "contact" in event.get("poses", []):
+                hits += 1
+        elif bool(event.get(signal, False)):
+            hits += 1
+    if checks == 0:
+        return False
+    return hits >= max(1, checks // 2)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Built-in Base Scorer
 # ──────────────────────────────────────────────────────────────────────────────
@@ -278,12 +314,15 @@ class ThreatScorer:
         for threat_def in self._loader.get_threats():
             try:
                 conditions = threat_def.get("conditions", {})
-                if _eval_conditions(conditions, event):
+                description = threat_def.get("description", "")
+                matched_by_condition = bool(conditions) and _eval_conditions(conditions, event)
+                matched_by_description = (not conditions) and _eval_description(description, event)
+                if matched_by_condition or matched_by_description:
                     matched.append(MatchedThreat(
                         id       = threat_def.get("id", "?"),
-                        name     = threat_def.get("name", "Custom Threat"),
+                        name     = threat_def.get("name", threat_def.get("description", "Custom Threat")),
                         severity = threat_def.get("severity", "medium"),
-                        message  = threat_def.get("message", "Custom threat triggered."),
+                        message  = threat_def.get("message", threat_def.get("description", "Custom threat triggered.")),
                     ))
                     logger.info("Custom threat matched: %s", threat_def.get("name"))
             except Exception:

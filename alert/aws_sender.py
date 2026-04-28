@@ -25,7 +25,9 @@ import os
 import threading
 import time
 import uuid
+import smtplib
 from datetime import datetime, timezone
+from email.message import EmailMessage
 from typing import Optional
 
 import boto3
@@ -156,6 +158,42 @@ def _send_ses(ses, sender: str, recipients: list, subject: str, html: str, plain
             time.sleep(wait)
 
 
+def _send_smtp(subject: str, html: str, plain: str, sender: str, recipients: list[str],
+               snapshot_jpeg: Optional[bytes], snapshot_name: str) -> str:
+    """
+    Send email via SMTP (Gmail/Brevo/Outlook/custom SMTP).
+    Required env:
+      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
+    Optional:
+      SMTP_USE_TLS=true|false (default true)
+    """
+    host = os.environ.get("SMTP_HOST", "").strip()
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    user = os.environ.get("SMTP_USER", "").strip()
+    pwd  = os.environ.get("SMTP_PASS", "").strip()
+    use_tls = os.environ.get("SMTP_USE_TLS", "true").lower() == "true"
+
+    if not all([host, port, user, pwd]):
+        raise RuntimeError("Missing SMTP config (SMTP_HOST/PORT/USER/PASS)")
+
+    msg = EmailMessage()
+    msg["From"] = sender
+    msg["To"] = ", ".join(recipients)
+    msg["Subject"] = subject
+    msg.set_content(plain)
+    msg.add_alternative(html, subtype="html")
+
+    if snapshot_jpeg:
+        msg.add_attachment(snapshot_jpeg, maintype="image", subtype="jpeg", filename=snapshot_name)
+
+    with smtplib.SMTP(host, port, timeout=20) as server:
+        if use_tls:
+            server.starttls()
+        server.login(user, pwd)
+        server.send_message(msg)
+    return f"smtp-{uuid.uuid4().hex[:12]}"
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # 3.  Email builder
 # ══════════════════════════════════════════════════════════════════════════════
@@ -177,13 +215,14 @@ def _build_email(matched: list, vision: dict, sensors: dict,
     rows = ""
     for t in matched:
         sev = t.get("severity","medium")
+        conf = float(t.get("confidence", 0.0))
         rows += (
             f'<tr>'
             f'<td style="padding:8px 12px;border-bottom:1px solid #2a2a2a;">'
             f'<span style="background:{_SEV_BG.get(sev,"#E6F1FB")};color:{_SEV_COLOR.get(sev,"#185FA5")};'
             f'padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">{sev.upper()}</span></td>'
             f'<td style="padding:8px 12px;border-bottom:1px solid #2a2a2a;font-weight:600;color:#e0e0e0;">{t.get("name","")}</td>'
-            f'<td style="padding:8px 12px;border-bottom:1px solid #2a2a2a;color:#aaa;font-size:13px;">{t.get("message","")}</td>'
+            f'<td style="padding:8px 12px;border-bottom:1px solid #2a2a2a;color:#aaa;font-size:13px;">{t.get("message","")} (confidence {conf:.2f})</td>'
             f'</tr>'
         )
 
@@ -363,6 +402,77 @@ class AlertPipeline:
                 logger.exception("AlertPipeline.send_if_matched failed")
 
         return out
+
+    def send_alert(self, payload: dict, snapshot_jpeg: Optional[bytes]) -> dict:
+        """
+        Backward-compatible API used by sneakpeek_ui/app.py.
+        Expects payload from ThreatScorer.to_dict() + sensor context.
+        """
+        custom = payload.get("custom_threats", []) or []
+        if not custom:
+            return {"success": False, "error": "No matched custom threats", "snapshot_url": None, "message_id": None}
+
+        matched = []
+        for t in custom:
+            matched.append({
+                "id": t.get("id", ""),
+                "name": t.get("name", "Custom Threat"),
+                "severity": t.get("severity", payload.get("severity", "medium")),
+                "message": t.get("message", ""),
+                "confidence": float(payload.get("score", 0.0)),
+            })
+
+        provider = os.environ.get("EMAIL_PROVIDER", "aws").strip().lower()
+        sender = os.environ.get("AWS_SES_SENDER", "").strip() or os.environ.get("SMTP_FROM", "").strip()
+        recipients = [r.strip() for r in os.environ.get("AWS_SES_RECIPIENT", "").split(",") if r.strip()]
+        if not all([sender, recipients]):
+            return {"success": False, "error": "Missing sender/recipient config", "snapshot_url": None, "message_id": None}
+
+        try:
+            ts = datetime.now(timezone.utc)
+            ts_file = ts.strftime("%Y%m%dT%H%M%SZ")
+            ts_human = ts.strftime("%Y-%m-%d %H:%M:%S UTC")
+            filename = f"snapshot_{ts_file}_{uuid.uuid4().hex[:8]}.jpg"
+            snap_url = ""
+            if snapshot_jpeg:
+                os.makedirs(SNAPSHOT_LOCAL_DIR, exist_ok=True)
+                with open(os.path.join(SNAPSHOT_LOCAL_DIR, filename), "wb") as fh:
+                    fh.write(snapshot_jpeg)
+
+            if provider == "aws":
+                bucket = os.environ.get("AWS_S3_BUCKET", "").strip()
+                if not bucket:
+                    return {"success": False, "error": "Missing AWS_S3_BUCKET", "snapshot_url": None, "message_id": None}
+                s3, ses = _boto_clients()
+                if snapshot_jpeg:
+                    prefix = os.environ.get("AWS_S3_PREFIX", "snapshots/").rstrip("/")
+                    s3_key = f"{prefix}/{filename}"
+                    snap_url = _upload_s3(s3, bucket, s3_key, snapshot_jpeg)
+
+            subject, html, plain = _build_email(
+                matched,
+                {
+                    "persons": payload.get("persons", 0),
+                    "poses": payload.get("poses", []),
+                    "unknown_person": payload.get("unknown_person", False),
+                    "face_ids": payload.get("face_ids", []),
+                },
+                payload.get("sensor", {}),
+                snap_url,
+                ts_human,
+            )
+
+            if provider == "aws":
+                msg_id = _send_ses(ses, sender, recipients, subject, html, plain)
+            elif provider == "smtp":
+                msg_id = _send_smtp(subject, html, plain, sender, recipients, snapshot_jpeg, filename)
+            else:
+                return {"success": False, "error": f"Unsupported EMAIL_PROVIDER: {provider}", "snapshot_url": None, "message_id": None}
+
+            return {"success": True, "error": None, "snapshot_url": snap_url, "message_id": msg_id}
+        except Exception as exc:
+            logger.exception("send_alert failed")
+            return {"success": False, "error": str(exc), "snapshot_url": None, "message_id": None}
 
 
 # ── Backwards-compat alias so app.py import still works ──────────────────────

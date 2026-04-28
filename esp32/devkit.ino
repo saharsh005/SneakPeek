@@ -32,6 +32,8 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>        // Install via Library Manager: "ArduinoJson" by Benoit Blanchon
+#include <WiFi.h>
+#include <HTTPClient.h>
 
 // ── Pin definitions ───────────────────────────────────────────────────
 #define PIN_PIR       14
@@ -48,6 +50,12 @@
 #define MAX_FRAME_SIZE       60000    // safety cap on JPEG size (bytes)
 #define CAM_CAPTURE_CMD      'C'      // single byte sent to CAM to trigger capture
 #define CAM_TIMEOUT_MS       5000     // max wait for CAM to respond
+#define HTTP_POST_TIMEOUT_MS 3000
+
+// Wi-Fi + backend endpoint (set to the machine running python main.py)
+const char* WIFI_SSID = "total";
+const char* WIFI_PASS = "123456789";
+const char* SENSOR_API_URL = "http://10.224.162.73:5000/api/sensor/event";
 
 // ── UART2 for camera communication ────────────────────────────────────
 HardwareSerial CamSerial(2);
@@ -58,6 +66,7 @@ uint32_t motionStartMs      = 0;
 bool     motionSustained    = false;
 uint32_t lastSensorSendMs   = 0;
 bool     cameraReady        = false;
+uint32_t lastWifiLogMs      = 0;
 
 // ── MQ-2 PPM estimation ───────────────────────────────────────────────
 // The MQ-2 outputs an analogue voltage proportional to gas concentration.
@@ -80,8 +89,53 @@ void sendSensorPacket(bool motion, float smokePpm, int ldr) {
   doc["motion"]    = motion ? 1 : 0;
   doc["smoke_ppm"] = round(smokePpm * 10.0f) / 10.0f;  // 1 decimal place
   doc["ldr"]       = ldr;
+  doc["is_night"]  = (ldr < LDR_NIGHT_MAX) ? 1 : 0;
   serializeJson(doc, Serial);
   Serial.println();   // newline terminates the JSON line for receiver.py readline()
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println(F("[HTTP] Skip POST: WiFi disconnected"));
+    return;
+  }
+
+  String payload;
+  serializeJson(doc, payload);
+
+  HTTPClient http;
+  WiFiClient client;
+  http.setTimeout(HTTP_POST_TIMEOUT_MS);
+  if (!http.begin(client, SENSOR_API_URL)) {
+    Serial.println(F("[HTTP] begin() failed"));
+    return;
+  }
+  http.addHeader("Content-Type", "application/json");
+  int code = http.POST(payload);
+  if (code > 0) {
+    Serial.printf("[HTTP] POST %s => %d\n", SENSOR_API_URL, code);
+  } else {
+    Serial.printf("[HTTP] FAIL code=%d WiFi=%d RSSI=%d URL=%s\n",
+                  code, WiFi.status(), WiFi.RSSI(), SENSOR_API_URL);
+  }
+  http.end();
+}
+
+void ensureWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return;
+  uint32_t now = millis();
+  if (now - lastWifiLogMs > 2000) {
+    Serial.printf("[WiFi] reconnecting... status=%d\n", WiFi.status());
+    lastWifiLogMs = now;
+  }
+  WiFi.disconnect(false, false);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  uint32_t deadline = millis() + 4000;
+  while (WiFi.status() != WL_CONNECTED && millis() < deadline) {
+    delay(200);
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("[WiFi] connected IP=%s RSSI=%d\n",
+                  WiFi.localIP().toString().c_str(), WiFi.RSSI());
+  }
 }
 
 // ── Request and forward a JPEG frame from the CAM ────────────────────
@@ -165,17 +219,38 @@ void setup() {
   // but it normalises quickly
   analogReadResolution(12);   // 12-bit ADC → 0–4095
 
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.printf("[WiFi] connecting to %s ...\n", WIFI_SSID);
+  uint32_t t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 15000) {
+    delay(300);
+    Serial.print(".");
+  }
+  Serial.println();
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("[WiFi] connected IP=%s RSSI=%d\n",
+                  WiFi.localIP().toString().c_str(), WiFi.RSSI());
+  } else {
+    Serial.printf("[WiFi] connect failed status=%d\n", WiFi.status());
+  }
+
   Serial.println(F("{\"type\":\"boot\",\"msg\":\"SneakPeek DevKit ready\"}"));
 }
 
 // ─────────────────────────────────────────────────────────────────────
 void loop() {
+  ensureWiFi();
   uint32_t now = millis();
 
   // ── Read sensors ──────────────────────────────────────────────────
   bool  pirRaw   = digitalRead(PIN_PIR) == HIGH;
   float smokePpm = readSmokePPM();
   int   ldrRaw   = analogRead(PIN_LDR);
+  bool  isNight  = ldrRaw < LDR_NIGHT_MAX;
+
+  Serial.printf("[SENSOR] motion=%d smoke_ppm=%.1f ldr=%d night=%d\n",
+                pirRaw ? 1 : 0, smokePpm, ldrRaw, isNight ? 1 : 0);
 
   // ── PIR sustained motion logic ────────────────────────────────────
   // The sensor itself determines what counts as real presence,
